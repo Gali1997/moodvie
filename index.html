@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Moodvie</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,700;1,400;1,500&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="grain"></div>
+  <div class="cursor"></div>
+  <div class="cursor-dot"></div>
+
+  <!-- WATCHLIST PANEL -->
+  <div class="watchlist-panel" id="watchlist-panel">
+    <div class="wl-header">
+      <h3 class="wl-title-label">My Watchlist</h3>
+      <button class="wl-close" id="watchlist-close">✕</button>
+    </div>
+    <div class="wl-body">
+      <p class="wl-empty" id="watchlist-empty">No films saved yet.<br>Find your first match below.</p>
+      <div class="wl-items" id="watchlist-items"></div>
+    </div>
+  </div>
+  <div class="panel-overlay" id="panel-overlay"></div>
+
+  <!-- LOGIN MODAL -->
+  <div class="login-modal" id="login-modal">
+    <div class="login-box">
+      <button class="login-close" id="login-modal-close">✕</button>
+      <p class="login-eyebrow">Welcome back</p>
+      <h3 class="login-heading">Sign in to save<br><em>your watchlist</em></h3>
+      <p class="login-sub">Your mood history and saved films stay with you across sessions.</p>
+      <button class="google-btn" id="google-signin-btn">
+        <svg viewBox="0 0 24 24" width="18" height="18"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+        Continue with Google
+      </button>
+    </div>
+  </div>
+
+  <!-- HERO -->
+  <section class="hero" id="hero">
+    <canvas id="hero-canvas"></canvas>
+    <nav class="nav">
+      <div class="logo">Moodvie</div>
+      <div class="nav-right">
+        <button class="nav-wl-btn" id="watchlist-nav">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="17" height="17"><path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/></svg>
+          <span>Watchlist</span>
+        </button>
+        <button class="nav-login-btn" id="login-btn">Sign in</button>
+        <button class="nav-user-btn" id="user-btn" style="display:none">
+          <span class="user-name"></span>
+          <span class="nav-signout">· Sign out</span>
+        </button>
+      </div>
+    </nav>
+    <div class="hero-content">
+      <p class="eyebrow">What are you feeling?</p>
+      <h1 class="headline">The right film<br><em>for this exact moment.</em></h1>
+      <div class="input-wrap">
+        <textarea id="mood-input" placeholder="I feel like I'm between things. Like I want to cry but also feel hopeful..." rows="3"></textarea>
+        <button class="cta-btn" id="find-btn">
+          <span>Find my film</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- LOADING -->
+  <section class="loading-section" id="loading">
+    <div class="reel"></div>
+    <p class="loading-text">Reading your mood<span class="dots"></span></p>
+  </section>
+
+  <!-- RESULT -->
+  <section class="result-section" id="result">
+    <div class="result-card" id="result-card">
+      <div class="poster-wrap" id="poster-wrap">
+        <img id="movie-poster" src="" alt="">
+        <div class="poster-glow"></div>
+      </div>
+      <div class="movie-info">
+        <p class="movie-year" id="movie-year"></p>
+        <h2 class="movie-title" id="movie-title"></h2>
+        <p class="movie-tagline" id="movie-tagline" style="display:none"></p>
+
+        <!-- Meta row: runtime · genres · rating -->
+        <div class="movie-meta" id="movie-meta"></div>
+
+        <p class="movie-reason" id="movie-reason"></p>
+
+        <!-- Director + cast -->
+        <p class="movie-credits" id="movie-credits" style="display:none"></p>
+
+        <!-- Mood match badge (the fun bit) -->
+        <div class="mood-match" id="mood-match" style="display:none">
+          <div class="match-circle">
+            <svg class="match-ring" viewBox="0 0 56 56">
+              <circle cx="28" cy="28" r="25" class="match-track"/>
+              <circle cx="28" cy="28" r="25" class="match-fill" id="match-fill"/>
+            </svg>
+            <span class="match-pct" id="match-pct">94%</span>
+          </div>
+          <div class="match-label">
+            <span class="match-title">Mood match</span>
+            <span class="match-sub" id="match-sub">A scary-good fit for tonight</span>
+          </div>
+        </div>
+
+        <!-- Streaming providers -->
+        <div class="providers-wrap" id="providers-wrap" style="display:none">
+          <p class="providers-label" id="providers-label">Where to watch</p>
+          <div class="providers-list" id="providers-list"></div>
+        </div>
+
+        <!-- Trailer -->
+        <a class="trailer-btn" id="trailer-btn" href="#" target="_blank" style="display:none">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M8 5v14l11-7z"/></svg>
+          Watch trailer
+        </a>
+
+        <!-- Before the film · ritual suggestions -->
+        <div class="ritual" id="ritual" style="display:none">
+          <p class="ritual-label">Before the film</p>
+          <ol class="ritual-list" id="ritual-list"></ol>
+        </div>
+
+        <!-- Tonight's ticket · 3D interactive golden stub -->
+        <div class="ticket-scene" id="ticket-scene" style="display:none">
+          <div class="ticket-stub" id="ticket-stub">
+            <!-- Perforation holes -->
+            <span class="perf-hole"></span>
+            <span class="perf-hole"></span>
+            <span class="perf-hole"></span>
+            <div class="ticket-main">
+              <div class="ticket-head">
+                <span class="ticket-brand">Moodvie</span>
+                <span class="ticket-admit">Admit One</span>
+              </div>
+              <p class="ticket-feature">Tonight's feature</p>
+              <h4 class="ticket-title" id="ticket-title"></h4>
+              <p class="ticket-year" id="ticket-year"></p>
+              <p class="ticket-mood" id="ticket-mood"></p>
+              <div class="ticket-meta">
+                <div class="tm-cell">
+                  <span class="tm-label">Date</span>
+                  <span class="tm-value" id="ticket-date"></span>
+                </div>
+                <div class="tm-cell">
+                  <span class="tm-label">Seat</span>
+                  <span class="tm-value" id="ticket-seat"></span>
+                </div>
+                <div class="tm-cell">
+                  <span class="tm-label">No.</span>
+                  <span class="tm-value" id="ticket-no"></span>
+                </div>
+              </div>
+            </div>
+            <div class="ticket-stub-end">
+              <span class="stub-label">Admit</span>
+              <span class="stub-num">01</span>
+              <span class="stub-brand">Moodvie</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="result-actions">
+          <button class="watchlist-add-btn" id="watchlist-add-btn">+ Add to watchlist</button>
+          <button class="reset-btn" id="reset-btn">Try another mood</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TIP MODAL -->
+  <div class="tip-overlay" id="tip-overlay">
+    <div class="tip-modal">
+      <button class="tip-close" id="tip-close">✕</button>
+      <p class="tip-emoji">☕</p>
+      <h3 class="tip-title">Did this land?</h3>
+      <p class="tip-sub">If Moodvie found you the right film tonight, buy me a coffee.</p>
+      <a class="tip-btn" id="tip-link" href="#" target="_blank">Buy me a coffee</a>
+      <button class="tip-skip" id="tip-skip">Maybe next time</button>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <p>This product uses the TMDB API but is not endorsed or certified by TMDB.</p>
+    <img src="https://www.themoviedb.org/assets/2/v4/logos/v2/blue_short-8e7b30f73a4020692ccca9c88bafe5dcb6f8a62a4c6bc55cd9ba82bb2cd95f6c.svg" alt="TMDB" class="tmdb-logo">
+  </footer>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="firebase-config.js"></script>
+  <script src="config.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="hero3d.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

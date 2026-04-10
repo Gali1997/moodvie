@@ -1,0 +1,13 @@
+# API keys — never commit
+config.js
+
+# Claude Code local settings
+.claude/
+
+# Large media
+*.mp4
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
