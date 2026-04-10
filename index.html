@@ -3,205 +3,1234 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Moodvie</title>
+  <title>Moodvie · Now Showing</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,700;1,400;1,500&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+    :root {
+      --cream:  #f1e3bf;
+      --gold:   #d4a84a;
+      --amber:  #b4761e;
+      --crimson:#7a1818;
+      --ink:    #1a0f08;
+      --deep:   #050302;
+      --serif:  'Playfair Display', Georgia, serif;
+      --sans:   'Inter', sans-serif;
+    }
+    html { scroll-behavior:auto; }
+    html, body {
+      width:100%;
+      background:#000;
+      color:var(--cream);
+      font-family:var(--sans);
+      overflow-x:hidden;
+      cursor:none;
+      user-select:none;
+      -webkit-user-select:none;
+    }
+
+    /* ───────── Custom cursor ───────── */
+    .cursor {
+      position:fixed; top:0; left:0;
+      width:34px; height:34px;
+      border:1px solid rgba(241,227,191,0.45); border-radius:50%;
+      pointer-events:none; z-index:9999;
+      transform:translate(-50%,-50%);
+      mix-blend-mode:difference;
+      transition:width .35s, height .35s, border-color .35s;
+    }
+    .cursor-dot {
+      position:fixed; top:0; left:0;
+      width:4px; height:4px;
+      background:var(--cream); border-radius:50%;
+      pointer-events:none; z-index:10000;
+      transform:translate(-50%,-50%);
+    }
+    body:has(a:hover) .cursor,
+    body.grabbing .cursor { width:70px; height:70px; border-color:rgba(212,168,74,0.95); }
+
+    /* ───────── Film grain ───────── */
+    .grain {
+      position:fixed; inset:0; z-index:9000; pointer-events:none; opacity:0.08;
+      mix-blend-mode:overlay;
+      background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 240 240' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      background-size:200px;
+      animation:grain 1.4s steps(8) infinite;
+    }
+    @keyframes grain {
+      0%,100%{transform:translate(0,0)}  20%{transform:translate(-3%,2%)}
+      40%{transform:translate(2%,-3%)}    60%{transform:translate(-2%,3%)}
+      80%{transform:translate(3%,-2%)}
+    }
+
+    /* ═════════════ INTRO SEQUENCE ═════════════ */
+    .intro {
+      position:fixed; inset:0; z-index:9500;
+      background:#000;
+      display:flex; align-items:center; justify-content:center;
+      pointer-events:all;
+    }
+    .intro.gone { pointer-events:none; }
+
+    .intro-presents {
+      font-family:var(--sans); font-size:0.7rem; font-weight:300;
+      letter-spacing:0.6em; text-transform:uppercase;
+      color:rgba(212,168,74,0.95);
+      text-align:center;
+      opacity:0;
+    }
+    .intro-presents .pres-line {
+      display:block; font-family:var(--serif); font-style:italic;
+      font-size:2.2rem; letter-spacing:0.05em; text-transform:none;
+      color:var(--cream); margin-top:0.6rem; font-weight:400;
+    }
+
+    /* Theatre curtains */
+    .curtain {
+      position:fixed; top:0; bottom:0; width:52%;
+      z-index:9400; pointer-events:none;
+      background:
+        radial-gradient(ellipse at top, rgba(0,0,0,0.6), transparent 70%),
+        repeating-linear-gradient(90deg,
+          #2a0606 0%, #5a1010 1.4%, #7a1818 2.8%,
+          #5a1010 4.2%, #2a0606 5.6%);
+      box-shadow:inset 0 0 200px rgba(0,0,0,0.85);
+    }
+    .curtain.left  { left:0;  transform-origin:left  center; }
+    .curtain.right { right:0; transform-origin:right center; }
+    .curtain::before {
+      content:''; position:absolute; inset:0;
+      background:radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.5) 100%);
+    }
+    /* Curtain top valance */
+    .valance {
+      position:fixed; top:0; left:0; right:0; height:7vh;
+      z-index:9410; pointer-events:none;
+      background:
+        radial-gradient(ellipse at top, rgba(0,0,0,0.7), transparent 70%),
+        repeating-linear-gradient(90deg,
+          #2a0606 0%, #5a1010 0.8%, #7a1818 1.6%,
+          #5a1010 2.4%, #2a0606 3.2%);
+      box-shadow:0 10px 30px rgba(0,0,0,0.85);
+    }
+    .valance::after {
+      content:''; position:absolute; bottom:-12px; left:0; right:0; height:14px;
+      background:repeating-linear-gradient(90deg,
+        rgba(212,168,74,0.5) 0 6px, transparent 6px 22px);
+      filter:drop-shadow(0 4px 8px rgba(212,168,74,0.4));
+    }
+
+    /* ───────── Top nav ───────── */
+    .nav {
+      position:fixed; top:0; left:0; right:0; z-index:100;
+      padding:1.8rem 3rem;
+      display:flex; align-items:center; justify-content:space-between;
+      mix-blend-mode:difference;
+      opacity:0;
+    }
+    .marquee {
+      font-family:var(--serif); font-size:1.3rem; font-weight:700;
+      letter-spacing:0.32em; text-transform:uppercase; color:var(--cream);
+      text-decoration:none; cursor:none;
+    }
+    .nav-links {
+      display:flex; align-items:center; gap:2.2rem;
+    }
+    .nav-link {
+      font-family:var(--sans); font-size:0.55rem; font-weight:400;
+      letter-spacing:0.45em; text-transform:uppercase;
+      color:rgba(241,227,191,0.7);
+      text-decoration:none; cursor:none;
+      position:relative;
+      padding-bottom:4px;
+      transition:color .3s ease;
+    }
+    .nav-link::after {
+      content:''; position:absolute; left:0; right:0; bottom:0;
+      height:1px; background:var(--gold);
+      transform:scaleX(0); transform-origin:left;
+      transition:transform .4s cubic-bezier(.22,1,.36,1);
+    }
+    .nav-link:hover { color:var(--cream); }
+    .nav-link:hover::after { transform:scaleX(1); }
+
+    section { position:relative; width:100%; }
+
+    /* ═══════════ HERO ═══════════ */
+    .hero {
+      height:100vh; min-height:780px;
+      position:relative; overflow:hidden;
+      background:
+        radial-gradient(ellipse at center 40%, #1a0f08 0%, #050302 60%, #000 100%);
+      display:flex; flex-direction:column;
+    }
+
+    /* The audience silhouette at the bottom */
+    .audience {
+      position:absolute; left:0; right:0; bottom:0;
+      height:18vh; z-index:8;
+      background:linear-gradient(to top, #000 35%, transparent 100%);
+      pointer-events:none;
+    }
+    .audience svg {
+      position:absolute; bottom:0; left:50%; transform:translateX(-50%);
+      width:140%; height:100%;
+      filter:drop-shadow(0 -8px 30px rgba(0,0,0,0.9));
+    }
+
+    /* Headline overlay */
+    .hero-text {
+      position:absolute; inset:0; z-index:6;
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      text-align:center; pointer-events:none;
+      mix-blend-mode:screen;
+      padding-bottom:8vh;
+    }
+    .pre-label {
+      font-family:var(--sans); font-size:0.62rem; font-weight:400;
+      letter-spacing:0.55em; text-transform:uppercase;
+      color:rgba(212,168,74,0.95);
+      margin-bottom:1.4rem;
+      display:inline-flex; align-items:center; gap:1.2rem;
+      opacity:0;
+    }
+    .pre-label::before, .pre-label::after {
+      content:''; width:38px; height:1px; background:rgba(212,168,74,0.7);
+    }
+    .headline {
+      font-family:var(--serif);
+      font-size:clamp(3rem, 8.6vw, 8.8rem);
+      font-weight:400; line-height:0.94;
+      color:var(--cream); letter-spacing:-0.012em;
+      text-shadow:0 4px 30px rgba(0,0,0,0.95);
+    }
+    .headline em { font-style:italic; color:var(--gold); display:block; }
+    .letter      { display:inline-block; transform:translateY(110%); opacity:0; }
+    .letter.space { width:0.3em; }
+
+    /* Cinema "screen" frame around the ring */
+    .screen-frame {
+      position:absolute; left:50%; top:50%;
+      width:min(78vw, 1100px); height:min(58vh, 540px);
+      transform:translate(-50%,-58%);
+      z-index:1; pointer-events:none;
+      border:1px solid rgba(212,168,74,0.18);
+      box-shadow:
+        0 0 80px rgba(212,168,74,0.12),
+        inset 0 0 120px rgba(0,0,0,0.85),
+        inset 0 0 0 1px rgba(0,0,0,0.6);
+      opacity:0;
+    }
+    .screen-frame::before, .screen-frame::after {
+      content:''; position:absolute; width:18px; height:18px;
+      border:1px solid rgba(212,168,74,0.5);
+    }
+    .screen-frame::before { top:-1px; left:-1px;  border-right:none; border-bottom:none; }
+    .screen-frame::after  { top:-1px; right:-1px; border-left:none;  border-bottom:none; }
+
+    .screen-frame .corner-bl, .screen-frame .corner-br {
+      content:''; position:absolute; bottom:-1px; width:18px; height:18px;
+      border:1px solid rgba(212,168,74,0.5);
+    }
+    .screen-frame .corner-bl { left:-1px;  border-right:none; border-top:none; }
+    .screen-frame .corner-br { right:-1px; border-left:none;  border-top:none; }
+
+    /* The 3D stage */
+    .ring-stage {
+      flex:1;
+      perspective:1600px;
+      perspective-origin:50% 55%;
+      display:flex; align-items:center; justify-content:center;
+      position:relative; z-index:2;
+      touch-action:none;
+      padding-bottom:8vh;
+    }
+    .ring-tilt {
+      position:relative; transform-style:preserve-3d;
+      will-change:transform;
+    }
+    .ring {
+      position:relative;
+      width:240px; height:355px;
+      transform-style:preserve-3d;
+      will-change:transform;
+    }
+    .ring-item {
+      position:absolute; inset:0;
+      transform-style:preserve-3d;
+      backface-visibility:hidden;
+      will-change:transform, filter;
+      cursor:none;
+    }
+    .ring-item .poster-frame {
+      width:100%; height:100%;
+      border-radius:3px;
+      overflow:hidden;
+      box-shadow:
+        0 30px 60px rgba(0,0,0,0.85),
+        0 0 0 1px rgba(212,168,74,0.18),
+        inset 0 0 40px rgba(0,0,0,0.4);
+      background:#1a0f08;
+      position:relative;
+      transition:box-shadow .4s ease;
+    }
+    .ring-item img {
+      width:100%; height:100%; object-fit:cover;
+      filter:brightness(0.92) sepia(0.13) contrast(1.05);
+      pointer-events:none;
+      -webkit-user-drag:none;
+    }
+    .ring-item .poster-frame::after {
+      content:''; position:absolute; inset:0;
+      background:linear-gradient(180deg, transparent 55%, rgba(0,0,0,0.7) 100%);
+      pointer-events:none;
+    }
+    .ring-item .poster-info {
+      position:absolute; bottom:0; left:0; right:0; padding:1rem 1.1rem;
+      font-family:var(--serif); font-style:italic;
+      font-size:0.85rem; color:var(--cream);
+      letter-spacing:0.01em; line-height:1.2;
+      text-shadow:0 2px 10px rgba(0,0,0,0.95);
+      opacity:0; transform:translateY(8px);
+      transition:opacity .35s ease, transform .35s ease;
+    }
+    .ring-item .poster-year {
+      font-family:var(--sans); font-style:normal;
+      font-size:0.5rem; font-weight:300;
+      letter-spacing:0.4em; text-transform:uppercase;
+      color:rgba(212,168,74,0.85);
+      display:block; margin-top:0.4rem;
+    }
+    .ring-item.is-front .poster-info { opacity:1; transform:translateY(0); }
+    .ring-item.is-front .poster-frame {
+      box-shadow:
+        0 50px 100px rgba(0,0,0,0.9),
+        0 0 0 1px rgba(212,168,74,0.6),
+        0 0 80px rgba(212,168,74,0.35);
+    }
+
+    .drag-hint {
+      position:absolute; bottom:21vh; left:50%; transform:translateX(-50%);
+      font-family:var(--sans); font-size:0.5rem; font-weight:300;
+      letter-spacing:0.45em; text-transform:uppercase;
+      color:rgba(212,168,74,0.65);
+      display:flex; align-items:center; gap:0.9rem;
+      opacity:0; z-index:7;
+    }
+    .drag-hint::before, .drag-hint::after {
+      content:''; width:24px; height:1px; background:rgba(212,168,74,0.45);
+    }
+    .scroll-cue {
+      position:absolute; bottom:2.4rem; left:50%; transform:translateX(-50%);
+      font-family:var(--sans); font-size:0.5rem; font-weight:300;
+      letter-spacing:0.45em; text-transform:uppercase;
+      color:rgba(212,168,74,0.55);
+      display:flex; flex-direction:column; align-items:center; gap:0.7rem;
+      z-index:9; opacity:0;
+    }
+    .scroll-cue::after {
+      content:''; width:1px; height:34px;
+      background:linear-gradient(to bottom, rgba(212,168,74,0.7), transparent);
+      animation:scrollLine 2s ease-in-out infinite;
+    }
+    @keyframes scrollLine {
+      0%   { transform:scaleY(0.2); transform-origin:top; }
+      50%  { transform:scaleY(1);   transform-origin:top; }
+      51%  { transform:scaleY(1);   transform-origin:bottom; }
+      100% { transform:scaleY(0.2); transform-origin:bottom; }
+    }
+
+    /* ═════════════ SPOTLIGHT MODAL (poster click) ═════════════ */
+    .spotlight {
+      position:fixed; inset:0; z-index:7000;
+      background:rgba(0,0,0,0.85);
+      backdrop-filter:blur(8px);
+      display:flex; align-items:center; justify-content:center;
+      gap:5vw; padding:6vw;
+      opacity:0; pointer-events:none;
+      transition:opacity .55s cubic-bezier(.4,0,.2,1);
+    }
+    .spotlight.on { opacity:1; pointer-events:all; }
+    .spotlight-poster {
+      width:min(34vw, 380px); aspect-ratio:2/3;
+      border-radius:4px; overflow:hidden;
+      box-shadow:
+        0 60px 120px rgba(0,0,0,0.9),
+        0 0 0 1px rgba(212,168,74,0.6),
+        0 0 100px rgba(212,168,74,0.35);
+      transform:scale(0.85) translateY(20px);
+      transition:transform .7s cubic-bezier(.22,1,.36,1);
+    }
+    .spotlight.on .spotlight-poster { transform:scale(1) translateY(0); }
+    .spotlight-poster img { width:100%; height:100%; object-fit:cover; display:block; }
+    .spotlight-info {
+      max-width:380px;
+      transform:translateX(40px); opacity:0;
+      transition:transform .8s cubic-bezier(.22,1,.36,1) .15s, opacity .8s ease .15s;
+    }
+    .spotlight.on .spotlight-info { transform:translateX(0); opacity:1; }
+    .spotlight-kicker {
+      font-family:var(--sans); font-size:0.55rem; font-weight:400;
+      letter-spacing:0.5em; text-transform:uppercase;
+      color:rgba(212,168,74,0.85);
+      display:inline-flex; align-items:center; gap:1rem;
+      margin-bottom:1.4rem;
+    }
+    .spotlight-kicker::before { content:''; width:30px; height:1px; background:rgba(212,168,74,0.6); }
+    .spotlight-title {
+      font-family:var(--serif); font-size:clamp(2rem, 4vw, 3.4rem);
+      font-weight:400; line-height:1; color:var(--cream);
+      letter-spacing:-0.01em;
+    }
+    .spotlight-title em { font-style:italic; color:var(--gold); }
+    .spotlight-meta {
+      font-family:var(--sans); font-size:0.6rem; font-weight:400;
+      letter-spacing:0.4em; text-transform:uppercase;
+      color:rgba(241,227,191,0.6);
+      margin-top:1.2rem;
+    }
+    .spotlight-overview {
+      font-family:var(--sans); font-size:0.85rem; font-weight:300;
+      line-height:1.7; color:rgba(241,227,191,0.75);
+      margin-top:1.6rem;
+      max-width:380px;
+    }
+    .spotlight-cta {
+      display:inline-flex; align-items:center; gap:0.9rem;
+      margin-top:2rem;
+      padding:1.05rem 2.4rem;
+      border:1px solid rgba(212,168,74,0.7);
+      background:rgba(122,24,24,0.18);
+      color:var(--cream);
+      font-family:var(--sans); font-size:0.58rem; font-weight:500;
+      letter-spacing:0.4em; text-transform:uppercase;
+      text-decoration:none; border-radius:1px; cursor:none;
+      position:relative; overflow:hidden;
+    }
+    .spotlight-cta::before {
+      content:''; position:absolute; inset:0;
+      background:linear-gradient(90deg, var(--gold), var(--amber));
+      transform:translateX(-101%);
+      transition:transform .55s cubic-bezier(.4,0,.2,1);
+    }
+    .spotlight-cta:hover::before { transform:translateX(0); }
+    .spotlight-cta:hover { color:var(--deep); border-color:var(--gold); }
+    .spotlight-cta span, .spotlight-cta svg { position:relative; z-index:1; }
+    .spotlight-close {
+      position:fixed; top:2.5rem; right:3rem; z-index:7100;
+      width:44px; height:44px; border-radius:50%;
+      border:1px solid rgba(241,227,191,0.4);
+      background:rgba(0,0,0,0.5); color:var(--cream);
+      display:flex; align-items:center; justify-content:center;
+      cursor:none;
+      font-family:var(--sans); font-size:0.9rem;
+      transition:border-color .3s, background .3s;
+    }
+    .spotlight-close:hover { border-color:var(--gold); background:rgba(122,24,24,0.4); }
+
+    /* ═══════════ STORY — FULLSCREEN CINEMATIC SCENES ═══════════ */
+    .story-section {
+      background:#050302;
+      position:relative;
+    }
+    .story-pin {
+      height:100vh;
+      position:relative;
+      overflow:hidden;
+      background:radial-gradient(ellipse at center, #160c06 0%, #050302 70%);
+    }
+    .story-pin::before {
+      content:''; position:absolute; inset:0;
+      background:
+        radial-gradient(circle at 20% 30%, rgba(212,168,74,0.06), transparent 50%),
+        radial-gradient(circle at 80% 70%, rgba(122,24,24,0.08), transparent 55%);
+      pointer-events:none;
+    }
+
+    /* Side step indicator */
+    .story-progress {
+      position:absolute; top:50%; left:3rem; transform:translateY(-50%);
+      z-index:25;
+      display:flex; flex-direction:column; gap:1.4rem;
+      font-family:var(--sans); font-size:0.5rem; font-weight:400;
+      letter-spacing:0.4em; text-transform:uppercase;
+    }
+    .story-progress span {
+      display:flex; align-items:center; gap:0.8rem;
+      color:rgba(241,227,191,0.3); transition:color .5s ease;
+    }
+    .story-progress span::before {
+      content:''; width:24px; height:1px; background:rgba(241,227,191,0.25);
+      transition:width .5s ease, background .5s ease;
+    }
+    .story-progress span.active { color:var(--gold); }
+    .story-progress span.active::before { width:48px; background:var(--gold); }
+
+    .story-eyebrow-top {
+      position:absolute; top:8vh; left:50%; transform:translateX(-50%);
+      font-family:var(--sans); font-size:0.55rem; font-weight:400;
+      letter-spacing:0.5em; text-transform:uppercase;
+      color:rgba(212,168,74,0.75);
+      display:flex; align-items:center; gap:1rem;
+      z-index:20; white-space:nowrap;
+    }
+    .story-eyebrow-top::before, .story-eyebrow-top::after {
+      content:''; width:30px; height:1px; background:rgba(212,168,74,0.6);
+    }
+
+    .story-stage {
+      position:absolute; inset:0;
+      display:flex; align-items:center; justify-content:center;
+    }
+    .story-scene {
+      position:absolute; inset:0;
+      display:flex; align-items:center; justify-content:center;
+      padding:0 8vw;
+      opacity:0;
+      transition:opacity 0.7s cubic-bezier(.22,1,.36,1);
+      pointer-events:none;
+    }
+    .story-scene.is-active { opacity:1; pointer-events:auto; }
+
+    .scene-inner {
+      display:grid;
+      grid-template-columns:auto 1fr;
+      gap:5vw;
+      align-items:center;
+      max-width:1300px; width:100%;
+    }
+
+    .scene-num {
+      font-family:var(--serif); font-style:italic; font-weight:400;
+      font-size:clamp(10rem, 22vw, 24rem);
+      line-height:0.85;
+      color:var(--gold);
+      text-shadow:
+        0 0 60px rgba(212,168,74,0.45),
+        0 0 120px rgba(212,168,74,0.25);
+      letter-spacing:-0.04em;
+    }
+
+    .scene-content { max-width:520px; }
+    .scene-eyebrow {
+      font-family:var(--sans); font-size:0.55rem; font-weight:400;
+      letter-spacing:0.55em; text-transform:uppercase;
+      color:rgba(212,168,74,0.85);
+      display:inline-flex; align-items:center; gap:1rem;
+      margin-bottom:1.6rem;
+    }
+    .scene-eyebrow::before { content:''; width:34px; height:1px; background:rgba(212,168,74,0.7); }
+
+    .scene-headline {
+      font-family:var(--serif);
+      font-size:clamp(2.4rem, 5vw, 4.4rem);
+      font-weight:400; line-height:1.02; color:var(--cream);
+      letter-spacing:-0.012em;
+    }
+    .scene-headline em { font-style:italic; color:var(--gold); }
+    .scene-headline .line {
+      display:block; overflow:hidden;
+    }
+    .scene-headline .line-inner {
+      display:block; transform:translateY(110%);
+    }
+    .scene-headline.in .line-inner {
+      transform:translateY(0);
+      transition:transform 1.1s cubic-bezier(.22,1,.36,1);
+    }
+    .scene-headline.in .line:nth-child(2) .line-inner { transition-delay:0.1s; }
+    .scene-headline.in .line:nth-child(3) .line-inner { transition-delay:0.2s; }
+
+    .scene-body {
+      margin-top:2rem;
+      font-family:var(--sans); font-size:0.92rem; font-weight:300;
+      line-height:1.75; color:rgba(241,227,191,0.75);
+      max-width:480px;
+      opacity:0; transform:translateY(20px);
+    }
+    .scene-body.in {
+      opacity:1; transform:translateY(0);
+      transition:opacity 1s ease 0.45s, transform 1s cubic-bezier(.22,1,.36,1) 0.45s;
+    }
+
+    /* Background tint that shifts per scene */
+    .story-bg-tint {
+      position:absolute; inset:0; pointer-events:none; z-index:0;
+      background:radial-gradient(ellipse at 30% 50%, rgba(212,168,74,0.10), transparent 60%);
+      transition:background 1.2s ease;
+    }
+
+    /* Scene visual element (SVG art per scene) */
+    .scene-art {
+      position:absolute; right:6vw; top:50%; transform:translateY(-50%);
+      width:min(28vw, 380px); height:min(28vw, 380px);
+      pointer-events:none; opacity:0;
+      transition:opacity 1s ease;
+    }
+    .scene-art.in { opacity:1; }
+    .scene-art svg { width:100%; height:100%; }
+    .scene-art .stroke { stroke:rgba(212,168,74,0.55); stroke-width:1; fill:none; }
+    .scene-art .gold-fill { fill:rgba(212,168,74,0.18); }
+    .scene-art .reel-rotate { animation:reelSpin 24s linear infinite; transform-origin:center; }
+    @keyframes reelSpin { to { transform:rotate(360deg); } }
+
+    /* Bottom progress line */
+    .story-line {
+      position:absolute; bottom:8vh; left:8vw; right:8vw;
+      height:1px; background:rgba(212,168,74,0.18);
+      z-index:15;
+    }
+    .story-line-fill {
+      position:absolute; top:0; left:0; height:100%;
+      background:var(--gold);
+      box-shadow:0 0 12px rgba(212,168,74,0.6);
+      width:0%;
+    }
+
+    @media (max-width:880px) {
+      .story-progress { display:none; }
+      .scene-inner { grid-template-columns:1fr; gap:1rem; text-align:center; }
+      .scene-num { font-size:8rem; }
+      .scene-eyebrow { justify-content:center; }
+      .scene-art { display:none; }
+    }
+
+    /* ═══════════ CTA ═══════════ */
+    .cta-section {
+      min-height:100vh;
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      padding:8rem 2rem 4rem;
+      background:radial-gradient(ellipse at center, #1a0f08 0%, #050302 70%);
+      position:relative;
+      text-align:center;
+    }
+    .cta-section::before {
+      content:''; position:absolute; inset:0;
+      background:radial-gradient(circle at 50% 50%, rgba(212,168,74,0.08), transparent 60%);
+    }
+    .cta-inner { position:relative; z-index:2; }
+    .cta-kicker {
+      font-family:var(--sans); font-size:0.55rem; font-weight:400;
+      letter-spacing:0.55em; text-transform:uppercase;
+      color:rgba(212,168,74,0.85);
+      display:inline-flex; align-items:center; gap:1.2rem;
+      margin-bottom:2rem;
+    }
+    .cta-kicker::before, .cta-kicker::after {
+      content:''; width:38px; height:1px; background:rgba(212,168,74,0.7);
+    }
+    .cta-headline {
+      font-family:var(--serif); font-size:clamp(3rem, 7vw, 6.5rem);
+      font-weight:400; line-height:0.96; color:var(--cream);
+      letter-spacing:-0.012em;
+      max-width:1000px;
+    }
+    .cta-headline em { font-style:italic; color:var(--gold); }
+    .cta-sub {
+      margin:2rem auto 3rem;
+      max-width:540px;
+      font-family:var(--sans); font-size:0.85rem; font-weight:300;
+      line-height:1.7; color:rgba(241,227,191,0.7);
+    }
+    .enter-btn {
+      display:inline-flex; align-items:center; gap:1rem;
+      padding:1.25rem 3.6rem;
+      border:1px solid rgba(212,168,74,0.7);
+      background:rgba(122,24,24,0.18);
+      color:var(--cream);
+      font-family:var(--sans); font-size:0.62rem; font-weight:500;
+      letter-spacing:0.4em; text-transform:uppercase;
+      text-decoration:none; border-radius:1px;
+      position:relative; overflow:hidden; cursor:none;
+      box-shadow:inset 0 0 30px rgba(212,168,74,0.1), 0 0 40px rgba(0,0,0,0.6);
+    }
+    .enter-btn::before {
+      content:''; position:absolute; inset:0;
+      background:linear-gradient(90deg, var(--gold), var(--amber));
+      transform:translateX(-101%);
+      transition:transform .55s cubic-bezier(.4,0,.2,1);
+    }
+    .enter-btn:hover::before { transform:translateX(0); }
+    .enter-btn:hover         { color:var(--deep); border-color:var(--gold); }
+    .enter-btn span,.enter-btn svg { position:relative; z-index:1; }
+    .enter-btn:hover .arrow  { transform:translateX(5px); }
+    .arrow { transition:transform .35s cubic-bezier(.4,0,.2,1); }
+
+    .footer {
+      margin-top:6rem;
+      font-family:var(--sans); font-size:0.5rem; font-weight:300;
+      letter-spacing:0.45em; text-transform:uppercase;
+      color:rgba(150,140,120,0.55);
+      display:flex; align-items:center; gap:1rem;
+    }
+    .footer::before, .footer::after {
+      content:''; width:24px; height:1px; background:rgba(150,140,120,0.4);
+    }
+
+    @media (max-width:780px) {
+      .nav { padding:1.4rem 1.5rem; }
+      .marquee { font-size:1rem; }
+      .programme { display:none; }
+      .ring { width:170px; height:255px; }
+      .story-cards { height:560px; }
+      .story-card { padding:2.5rem 2rem; }
+      .story-num { font-size:3.6rem; }
+      .spotlight { flex-direction:column; gap:2rem; padding:6vw 8vw; }
+      .spotlight-poster { width:55vw; }
+    }
+  </style>
 </head>
 <body>
 
+  <div class="cursor" id="cursor"></div>
+  <div class="cursor-dot" id="dot"></div>
   <div class="grain"></div>
-  <div class="cursor"></div>
-  <div class="cursor-dot"></div>
 
-  <!-- WATCHLIST PANEL -->
-  <div class="watchlist-panel" id="watchlist-panel">
-    <div class="wl-header">
-      <h3 class="wl-title-label">My Watchlist</h3>
-      <button class="wl-close" id="watchlist-close">✕</button>
-    </div>
-    <div class="wl-body">
-      <p class="wl-empty" id="watchlist-empty">No films saved yet.<br>Find your first match below.</p>
-      <div class="wl-items" id="watchlist-items"></div>
-    </div>
+  <!-- ═════ INTRO ═════ -->
+  <div class="intro" id="intro">
+    <p class="intro-presents" id="introPresents">
+      Moodvie Presents
+      <span class="pres-line">Movies that meet you where you are.</span>
+    </p>
   </div>
-  <div class="panel-overlay" id="panel-overlay"></div>
+  <div class="curtain left"   id="curtainL"></div>
+  <div class="curtain right"  id="curtainR"></div>
+  <div class="valance"        id="valance"></div>
 
-  <!-- LOGIN MODAL -->
-  <div class="login-modal" id="login-modal">
-    <div class="login-box">
-      <button class="login-close" id="login-modal-close">✕</button>
-      <p class="login-eyebrow">Welcome back</p>
-      <h3 class="login-heading">Sign in to save<br><em>your watchlist</em></h3>
-      <p class="login-sub">Your mood history and saved films stay with you across sessions.</p>
-      <button class="google-btn" id="google-signin-btn">
-        <svg viewBox="0 0 24 24" width="18" height="18"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-        Continue with Google
-      </button>
+  <nav class="nav" id="nav">
+    <a class="marquee" href="/">Moodvie</a>
+    <div class="nav-links">
+      <a class="nav-link" href="about.html">About</a>
+      <a class="nav-link" href="app.html">Try it</a>
     </div>
-  </div>
+  </nav>
 
-  <!-- HERO -->
+  <!-- ═════ HERO ═════ -->
   <section class="hero" id="hero">
-    <canvas id="hero-canvas"></canvas>
-    <nav class="nav">
-      <div class="logo">Moodvie</div>
-      <div class="nav-right">
-        <button class="nav-wl-btn" id="watchlist-nav">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="17" height="17"><path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/></svg>
-          <span>Watchlist</span>
-        </button>
-        <button class="nav-login-btn" id="login-btn">Sign in</button>
-        <button class="nav-user-btn" id="user-btn" style="display:none">
-          <span class="user-name"></span>
-          <span class="nav-signout">· Sign out</span>
-        </button>
-      </div>
-    </nav>
-    <div class="hero-content">
-      <p class="eyebrow">What are you feeling?</p>
-      <h1 class="headline">The right film<br><em>for this exact moment.</em></h1>
-      <div class="input-wrap">
-        <textarea id="mood-input" placeholder="I feel like I'm between things. Like I want to cry but also feel hopeful..." rows="3"></textarea>
-        <button class="cta-btn" id="find-btn">
-          <span>Find my film</span>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-        </button>
+
+    <div class="screen-frame" id="screenFrame">
+      <span class="corner-bl"></span>
+      <span class="corner-br"></span>
+    </div>
+
+    <div class="hero-text">
+      <p class="pre-label" id="prelabel">Now Showing</p>
+      <h1 class="headline" id="headline">
+        <span data-line>Find the film</span>
+        <em data-line>your mood deserves.</em>
+      </h1>
+    </div>
+
+    <div class="ring-stage" id="ringStage">
+      <div class="ring-tilt" id="ringTilt">
+        <div class="ring" id="ring"></div>
       </div>
     </div>
-  </section>
 
-  <!-- LOADING -->
-  <section class="loading-section" id="loading">
-    <div class="reel"></div>
-    <p class="loading-text">Reading your mood<span class="dots"></span></p>
-  </section>
-
-  <!-- RESULT -->
-  <section class="result-section" id="result">
-    <div class="result-card" id="result-card">
-      <div class="poster-wrap" id="poster-wrap">
-        <img id="movie-poster" src="" alt="">
-        <div class="poster-glow"></div>
-      </div>
-      <div class="movie-info">
-        <p class="movie-year" id="movie-year"></p>
-        <h2 class="movie-title" id="movie-title"></h2>
-        <p class="movie-tagline" id="movie-tagline" style="display:none"></p>
-
-        <!-- Meta row: runtime · genres · rating -->
-        <div class="movie-meta" id="movie-meta"></div>
-
-        <p class="movie-reason" id="movie-reason"></p>
-
-        <!-- Director + cast -->
-        <p class="movie-credits" id="movie-credits" style="display:none"></p>
-
-        <!-- Mood match badge (the fun bit) -->
-        <div class="mood-match" id="mood-match" style="display:none">
-          <div class="match-circle">
-            <svg class="match-ring" viewBox="0 0 56 56">
-              <circle cx="28" cy="28" r="25" class="match-track"/>
-              <circle cx="28" cy="28" r="25" class="match-fill" id="match-fill"/>
-            </svg>
-            <span class="match-pct" id="match-pct">94%</span>
-          </div>
-          <div class="match-label">
-            <span class="match-title">Mood match</span>
-            <span class="match-sub" id="match-sub">A scary-good fit for tonight</span>
-          </div>
-        </div>
-
-        <!-- Streaming providers -->
-        <div class="providers-wrap" id="providers-wrap" style="display:none">
-          <p class="providers-label" id="providers-label">Where to watch</p>
-          <div class="providers-list" id="providers-list"></div>
-        </div>
-
-        <!-- Trailer -->
-        <a class="trailer-btn" id="trailer-btn" href="#" target="_blank" style="display:none">
-          <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M8 5v14l11-7z"/></svg>
-          Watch trailer
-        </a>
-
-        <!-- Before the film · ritual suggestions -->
-        <div class="ritual" id="ritual" style="display:none">
-          <p class="ritual-label">Before the film</p>
-          <ol class="ritual-list" id="ritual-list"></ol>
-        </div>
-
-        <!-- Tonight's ticket · 3D interactive golden stub -->
-        <div class="ticket-scene" id="ticket-scene" style="display:none">
-          <div class="ticket-stub" id="ticket-stub">
-            <!-- Perforation holes -->
-            <span class="perf-hole"></span>
-            <span class="perf-hole"></span>
-            <span class="perf-hole"></span>
-            <div class="ticket-main">
-              <div class="ticket-head">
-                <span class="ticket-brand">Moodvie</span>
-                <span class="ticket-admit">Admit One</span>
-              </div>
-              <p class="ticket-feature">Tonight's feature</p>
-              <h4 class="ticket-title" id="ticket-title"></h4>
-              <p class="ticket-year" id="ticket-year"></p>
-              <p class="ticket-mood" id="ticket-mood"></p>
-              <div class="ticket-meta">
-                <div class="tm-cell">
-                  <span class="tm-label">Date</span>
-                  <span class="tm-value" id="ticket-date"></span>
-                </div>
-                <div class="tm-cell">
-                  <span class="tm-label">Seat</span>
-                  <span class="tm-value" id="ticket-seat"></span>
-                </div>
-                <div class="tm-cell">
-                  <span class="tm-label">No.</span>
-                  <span class="tm-value" id="ticket-no"></span>
-                </div>
-              </div>
-            </div>
-            <div class="ticket-stub-end">
-              <span class="stub-label">Admit</span>
-              <span class="stub-num">01</span>
-              <span class="stub-brand">Moodvie</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="result-actions">
-          <button class="watchlist-add-btn" id="watchlist-add-btn">+ Add to watchlist</button>
-          <button class="reset-btn" id="reset-btn">Try another mood</button>
-        </div>
-      </div>
+    <!-- audience silhouette -->
+    <div class="audience">
+      <svg viewBox="0 0 1600 200" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="seatGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%"  stop-color="#000" stop-opacity="0.4"/>
+            <stop offset="100%" stop-color="#000" stop-opacity="1"/>
+          </linearGradient>
+        </defs>
+        <!-- back row of heads (smaller, further) -->
+        <g fill="#000" opacity="0.85">
+          <ellipse cx="60"  cy="140" rx="38" ry="42"/>
+          <ellipse cx="155" cy="135" rx="42" ry="46"/>
+          <ellipse cx="260" cy="142" rx="40" ry="44"/>
+          <ellipse cx="360" cy="138" rx="44" ry="48"/>
+          <ellipse cx="470" cy="142" rx="42" ry="46"/>
+          <ellipse cx="575" cy="136" rx="46" ry="50"/>
+          <ellipse cx="690" cy="142" rx="44" ry="48"/>
+          <ellipse cx="800" cy="135" rx="48" ry="52"/>
+          <ellipse cx="915" cy="142" rx="44" ry="48"/>
+          <ellipse cx="1025" cy="136" rx="46" ry="50"/>
+          <ellipse cx="1135" cy="142" rx="42" ry="46"/>
+          <ellipse cx="1240" cy="138" rx="44" ry="48"/>
+          <ellipse cx="1345" cy="142" rx="40" ry="44"/>
+          <ellipse cx="1445" cy="135" rx="42" ry="46"/>
+          <ellipse cx="1545" cy="140" rx="38" ry="42"/>
+        </g>
+        <!-- shoulders / seat backs -->
+        <path d="M0,200 L0,170 Q40,140 100,170 Q160,140 220,170 Q280,140 340,170 Q400,140 460,170 Q520,140 580,170 Q640,140 700,170 Q760,140 820,170 Q880,140 940,170 Q1000,140 1060,170 Q1120,140 1180,170 Q1240,140 1300,170 Q1360,140 1420,170 Q1480,140 1540,170 Q1580,150 1600,170 L1600,200 Z" fill="url(#seatGrad)"/>
+      </svg>
     </div>
+
+    <div class="drag-hint" id="dragHint">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 12h14M12 5l-7 7 7 7M12 5l7 7-7 7"/></svg>
+      Drag · Click a poster
+    </div>
+    <div class="scroll-cue" id="scrollCue">Scroll</div>
   </section>
 
-  <!-- TIP MODAL -->
-  <div class="tip-overlay" id="tip-overlay">
-    <div class="tip-modal">
-      <button class="tip-close" id="tip-close">✕</button>
-      <p class="tip-emoji">☕</p>
-      <h3 class="tip-title">Did this land?</h3>
-      <p class="tip-sub">If Moodvie found you the right film tonight, buy me a coffee.</p>
-      <a class="tip-btn" id="tip-link" href="#" target="_blank">Buy me a coffee</a>
-      <button class="tip-skip" id="tip-skip">Maybe next time</button>
+  <!-- ═════ SPOTLIGHT MODAL ═════ -->
+  <div class="spotlight" id="spotlight">
+    <button class="spotlight-close" id="spotlightClose">✕</button>
+    <div class="spotlight-poster"><img id="spotImg" alt=""></div>
+    <div class="spotlight-info">
+      <p class="spotlight-kicker">Now Showing</p>
+      <h3 class="spotlight-title" id="spotTitle"></h3>
+      <p class="spotlight-meta"   id="spotMeta"></p>
+      <p class="spotlight-overview" id="spotOverview"></p>
+      <a class="spotlight-cta" href="app.html">
+        <span>Find Mine Tonight</span>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </a>
     </div>
   </div>
 
-  <!-- FOOTER -->
-  <footer class="footer">
-    <p>This product uses the TMDB API but is not endorsed or certified by TMDB.</p>
-    <img src="https://www.themoviedb.org/assets/2/v4/logos/v2/blue_short-8e7b30f73a4020692ccca9c88bafe5dcb6f8a62a4c6bc55cd9ba82bb2cd95f6c.svg" alt="TMDB" class="tmdb-logo">
-  </footer>
+  <!-- ═════ STORY — FULLSCREEN CINEMATIC SCENES ═════ -->
+  <section class="story-section" id="storySection">
+    <div class="story-pin">
+      <div class="story-bg-tint" id="storyBgTint"></div>
+      <p class="story-eyebrow-top">How it works</p>
 
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-  <script src="firebase-config.js"></script>
+      <div class="story-progress" id="storyProgress">
+        <span data-step="0" class="active">01 · Mood</span>
+        <span data-step="1">02 · Match</span>
+        <span data-step="2">03 · Watch</span>
+      </div>
+
+      <div class="story-stage">
+
+        <div class="story-scene is-active" data-scene="0">
+          <div class="scene-inner">
+            <div class="scene-num">01</div>
+            <div class="scene-content">
+              <p class="scene-eyebrow">Step one · Mood</p>
+              <h3 class="scene-headline">
+                <span class="line"><span class="line-inner">Type how you feel.</span></span>
+                <span class="line"><span class="line-inner"><em>However it comes</em></span></span>
+                <span class="line"><span class="line-inner"><em>out of you.</em></span></span>
+              </h3>
+              <p class="scene-body">A single word. A messy paragraph. An oddly specific Sunday night. There's no wrong way to describe what you're feeling — and no judgment about how raw or weird it sounds.</p>
+            </div>
+          </div>
+          <div class="scene-art" data-art="0">
+            <svg viewBox="0 0 400 400">
+              <!-- Speech bubble + soundwave -->
+              <path class="stroke" d="M80 200 Q80 100 200 100 Q320 100 320 200 Q320 300 200 300 L160 340 L170 290 Q80 280 80 200 Z"/>
+              <line class="stroke" x1="130" y1="180" x2="270" y2="180"/>
+              <line class="stroke" x1="130" y1="210" x2="240" y2="210"/>
+              <line class="stroke" x1="130" y1="240" x2="220" y2="240"/>
+              <circle class="gold-fill" cx="200" cy="200" r="3"/>
+            </svg>
+          </div>
+        </div>
+
+        <div class="story-scene" data-scene="1">
+          <div class="scene-inner">
+            <div class="scene-num">02</div>
+            <div class="scene-content">
+              <p class="scene-eyebrow">Step two · Match</p>
+              <h3 class="scene-headline">
+                <span class="line"><span class="line-inner">Our AI reads</span></span>
+                <span class="line"><span class="line-inner"><em>between the lines</em></span></span>
+                <span class="line"><span class="line-inner"><em>of what you wrote.</em></span></span>
+              </h3>
+              <p class="scene-body">Not keywords. Not your watch history. Not what's trending. Moodvie picks up on the actual tone of what you said — the texture, the longing, the specific shape of where you are tonight — and matches it to one film.</p>
+            </div>
+          </div>
+          <div class="scene-art" data-art="1">
+            <svg viewBox="0 0 400 400">
+              <!-- Concentric soundwaves emanating -->
+              <circle class="stroke" cx="200" cy="200" r="30"/>
+              <circle class="stroke" cx="200" cy="200" r="70" opacity="0.7"/>
+              <circle class="stroke" cx="200" cy="200" r="110" opacity="0.5"/>
+              <circle class="stroke" cx="200" cy="200" r="150" opacity="0.3"/>
+              <circle class="stroke" cx="200" cy="200" r="190" opacity="0.15"/>
+              <circle class="gold-fill" cx="200" cy="200" r="6"/>
+              <line class="stroke" x1="200" y1="50" x2="200" y2="80"/>
+              <line class="stroke" x1="200" y1="320" x2="200" y2="350"/>
+              <line class="stroke" x1="50" y1="200" x2="80" y2="200"/>
+              <line class="stroke" x1="320" y1="200" x2="350" y2="200"/>
+            </svg>
+          </div>
+        </div>
+
+        <div class="story-scene" data-scene="2">
+          <div class="scene-inner">
+            <div class="scene-num">03</div>
+            <div class="scene-content">
+              <p class="scene-eyebrow">Step three · Watch</p>
+              <h3 class="scene-headline">
+                <span class="line"><span class="line-inner">One film.</span></span>
+                <span class="line"><span class="line-inner">A real reason why.</span></span>
+                <span class="line"><span class="line-inner"><em>Where to watch it.</em></span></span>
+              </h3>
+              <p class="scene-body">A single recommendation — with the poster, the trailer, and every streaming service it's playing on tonight. Plus a few sentences in plain language about why this one, for you, right now. Save it for later or ask for another. That's it.</p>
+            </div>
+          </div>
+          <div class="scene-art" data-art="2">
+            <svg viewBox="0 0 400 400">
+              <!-- Spinning film reel -->
+              <g class="reel-rotate" style="transform-origin:200px 200px">
+                <circle class="stroke" cx="200" cy="200" r="160"/>
+                <circle class="stroke" cx="200" cy="200" r="130"/>
+                <circle class="stroke" cx="200" cy="200" r="40"/>
+                <circle class="gold-fill" cx="200" cy="200" r="8"/>
+                <circle class="gold-fill" cx="200" cy="80"  r="6"/>
+                <circle class="gold-fill" cx="200" cy="320" r="6"/>
+                <circle class="gold-fill" cx="80"  cy="200" r="6"/>
+                <circle class="gold-fill" cx="320" cy="200" r="6"/>
+                <circle class="gold-fill" cx="285" cy="115" r="5"/>
+                <circle class="gold-fill" cx="115" cy="115" r="5"/>
+                <circle class="gold-fill" cx="285" cy="285" r="5"/>
+                <circle class="gold-fill" cx="115" cy="285" r="5"/>
+              </g>
+            </svg>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="story-line">
+        <div class="story-line-fill" id="storyLineFill"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═════ CTA ═════ -->
+  <section class="cta-section">
+    <div class="cta-inner">
+      <p class="cta-kicker">Your turn</p>
+      <h2 class="cta-headline">So — what are you<br><em>feeling tonight?</em></h2>
+      <p class="cta-sub">Tell Moodvie how you feel, in your own words. Get one film picked for you. Takes about ten seconds.</p>
+      <a class="enter-btn" href="app.html">
+        <span>Find My Film</span>
+        <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="13" height="13">
+          <path d="M5 12h14M12 5l7 7-7 7"/>
+        </svg>
+      </a>
+    </div>
+    <div class="footer">Moodvie · made by Galina</div>
+  </section>
+
   <script src="config.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <script src="hero3d.js"></script>
-  <script src="app.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lenis@1.1.13/dist/lenis.min.js"></script>
+  <script>
+  gsap.registerPlugin(ScrollTrigger);
+
+  // ═════ Lenis smooth scroll (the buttery secret) ═════
+  const lenis = new Lenis({
+    duration: 1.4,
+    easing: t => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+    smoothWheel: true,
+    wheelMultiplier: 1,
+    touchMultiplier: 1.5
+  });
+  lenis.on('scroll', ScrollTrigger.update);
+  gsap.ticker.add(time => lenis.raf(time * 1000));
+  gsap.ticker.lagSmoothing(0);
+
+  // ═════ Custom cursor ═════
+  const cursorEl = document.getElementById('cursor');
+  const dotEl    = document.getElementById('dot');
+  let mxRaw = 0, myRaw = 0, cx = 0, cy = 0;
+  document.addEventListener('mousemove', e => {
+    mxRaw = e.clientX; myRaw = e.clientY;
+    gsap.set(dotEl, { x:e.clientX, y:e.clientY });
+  });
+  (function loopCursor() {
+    cx += (mxRaw-cx)*0.14; cy += (myRaw-cy)*0.14;
+    gsap.set(cursorEl, { x:cx, y:cy });
+    requestAnimationFrame(loopCursor);
+  })();
+
+  // ═════ Split headline into letters ═════
+  document.querySelectorAll('#headline [data-line]').forEach(line => {
+    const text = line.textContent;
+    line.innerHTML = '';
+    [...text].forEach(ch => {
+      const span = document.createElement('span');
+      span.className = 'letter' + (ch === ' ' ? ' space' : '');
+      span.textContent = ch === ' ' ? '\u00A0' : ch;
+      line.appendChild(span);
+    });
+  });
+
+  // ═════ Build the draggable 3D poster ring ═════
+  const RADIUS = 540;
+  const ringEl = document.getElementById('ring');
+  const tiltEl = document.getElementById('ringTilt');
+  const stageEl = document.getElementById('ringStage');
+
+  let items = [];
+  let movies = [];
+  let angle = 0, velocity = 0;
+  let isDragging = false, lastX = 0, dragMoved = 0;
+  let autoSpin = 0.05;
+  let frontIdx = 0;
+  let parallaxX = 0, parallaxY = 0, pxTarget = 0, pyTarget = 0;
+
+  async function fetchMovies() {
+    try {
+      const [p1, p2] = await Promise.all([
+        fetch(`https://api.themoviedb.org/3/movie/top_rated?api_key=${CONFIG.TMDB_API_KEY}&page=1`).then(r => r.json()),
+        fetch(`https://api.themoviedb.org/3/movie/top_rated?api_key=${CONFIG.TMDB_API_KEY}&page=2`).then(r => r.json())
+      ]);
+      return [...p1.results, ...p2.results].filter(m => m.poster_path).slice(0, 14);
+    } catch (err) { console.warn(err); return []; }
+  }
+
+  function buildRing(list) {
+    if (!list.length) {
+      ringEl.innerHTML = '<div style="color:#d4a84a;font-size:0.6rem;letter-spacing:0.4em;text-transform:uppercase;text-align:center;padding:2rem">No connection</div>';
+      return;
+    }
+    movies = list;
+    const step = 360 / list.length;
+    ringEl.innerHTML = list.map((m, i) => {
+      const a = step * i;
+      const year = (m.release_date || '').slice(0,4);
+      return `
+        <div class="ring-item" data-i="${i}" style="transform:rotateY(${a}deg) translateZ(${RADIUS}px)">
+          <div class="poster-frame">
+            <img src="https://image.tmdb.org/t/p/w500${m.poster_path}" alt="${m.title}">
+            <div class="poster-info">${m.title}<span class="poster-year">${year}</span></div>
+          </div>
+        </div>`;
+    }).join('');
+    items = [...ringEl.querySelectorAll('.ring-item')];
+  }
+
+  // ═════ Drag interaction ═════
+  function onPointerDown(e) {
+    if (document.getElementById('spotlight').classList.contains('on')) return;
+    isDragging = true; dragMoved = 0;
+    lastX = e.clientX ?? e.touches?.[0]?.clientX ?? 0;
+    velocity = 0;
+    document.body.classList.add('grabbing');
+  }
+  function onPointerMove(e) {
+    if (!isDragging) return;
+    const x  = e.clientX ?? e.touches?.[0]?.clientX ?? 0;
+    const dx = x - lastX;
+    lastX = x;
+    angle += dx * 0.32;
+    velocity = dx * 0.32;
+    dragMoved += Math.abs(dx);
+    e.preventDefault?.();
+  }
+  function onPointerUp() {
+    isDragging = false;
+    document.body.classList.remove('grabbing');
+  }
+  stageEl.addEventListener('mousedown',  onPointerDown);
+  window.addEventListener('mousemove',   onPointerMove);
+  window.addEventListener('mouseup',     onPointerUp);
+  stageEl.addEventListener('touchstart', onPointerDown, { passive:true });
+  window.addEventListener('touchmove',   onPointerMove, { passive:false });
+  window.addEventListener('touchend',    onPointerUp);
+
+  // ═════ Mouse parallax on the entire stage ═════
+  document.addEventListener('mousemove', e => {
+    pxTarget = (e.clientX / window.innerWidth  - 0.5) * 2;
+    pyTarget = (e.clientY / window.innerHeight - 0.5) * 2;
+  });
+
+  // ═════ Click a poster → spotlight modal ═════
+  const spotlight     = document.getElementById('spotlight');
+  const spotImg       = document.getElementById('spotImg');
+  const spotTitle     = document.getElementById('spotTitle');
+  const spotMeta      = document.getElementById('spotMeta');
+  const spotOverview  = document.getElementById('spotOverview');
+  const spotlightClose = document.getElementById('spotlightClose');
+
+  stageEl.addEventListener('click', e => {
+    if (dragMoved > 5) return;
+    const item = e.target.closest('.ring-item');
+    if (!item) return;
+    const i = +item.dataset.i;
+    const m = movies[i];
+    if (!m) return;
+    spotImg.src = `https://image.tmdb.org/t/p/w780${m.poster_path}`;
+    spotTitle.innerHTML = m.title;
+    const year = (m.release_date || '').slice(0,4);
+    spotMeta.textContent = `${year} · ★ ${m.vote_average?.toFixed(1) ?? '—'}`;
+    spotOverview.textContent = m.overview || '';
+    spotlight.classList.add('on');
+  });
+
+  function closeSpotlight() { spotlight.classList.remove('on'); }
+  spotlightClose.addEventListener('click', closeSpotlight);
+  spotlight.addEventListener('click', e => {
+    if (e.target === spotlight) closeSpotlight();
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeSpotlight();
+  });
+
+  // ═════ Render loop ═════
+  function render() {
+    requestAnimationFrame(render);
+
+    if (!isDragging && !spotlight.classList.contains('on')) {
+      angle    += velocity + autoSpin;
+      velocity *= 0.94;
+    }
+
+    // Smooth parallax
+    parallaxX += (pxTarget - parallaxX) * 0.06;
+    parallaxY += (pyTarget - parallaxY) * 0.06;
+    if (tiltEl) {
+      tiltEl.style.transform =
+        `rotateX(${-parallaxY * 6}deg) rotateY(${parallaxX * 6}deg) translateY(${parallaxY * 12}px)`;
+    }
+
+    ringEl.style.transform = `rotateY(${angle}deg)`;
+
+    // Depth-of-field blur on far posters + brightness fall-off
+    if (items.length) {
+      const step = 360 / items.length;
+      let bestI = 0, bestZ = -2;
+      for (let i = 0; i < items.length; i++) {
+        const a = (step * i + angle) * Math.PI / 180;
+        const z = Math.cos(a);
+        if (z > bestZ) { bestZ = z; bestI = i; }
+        const dist = 1 - Math.max(0, z);   // 0 front, 1 back
+        const blur = dist * 4.5;
+        const dim  = 0.55 + (1 - dist) * 0.45;
+        const frame = items[i].firstElementChild;
+        if (frame) {
+          frame.style.filter    = `blur(${blur}px) brightness(${dim})`;
+        }
+      }
+      if (bestI !== frontIdx) {
+        items[frontIdx]?.classList.remove('is-front');
+        items[bestI]?.classList.add('is-front');
+        frontIdx = bestI;
+      }
+    }
+  }
+  render();
+
+  // ═════ Cinematic intro sequence ═════
+  fetchMovies().then(list => {
+    buildRing(list);
+
+    const tl = gsap.timeline();
+
+    // 1. "Moodvie Presents" types in
+    tl.to('#introPresents', { opacity:1, duration:0.9, ease:'power2.out' }, 0.3);
+    tl.to('#introPresents', { opacity:0, duration:0.6, ease:'power2.in' }, 2.4);
+
+    // 2. Curtains pull back (clip-path style: scale X to 0)
+    tl.to('#curtainL', { x:'-100%', duration:1.8, ease:'expo.inOut' }, 2.4);
+    tl.to('#curtainR', { x: '100%', duration:1.8, ease:'expo.inOut' }, 2.4);
+    tl.to('#valance',  { y:'-100%', duration:1.4, ease:'expo.inOut' }, 2.6);
+    tl.to('#intro',    { autoAlpha:0, duration:0.8, ease:'power2.out',
+      onComplete: () => document.getElementById('intro').classList.add('gone')
+    }, 3.0);
+
+    // 3. Hero scene assembles
+    tl.from('.audience', { y:'100%', duration:1.6, ease:'power3.out' }, 3.2);
+    tl.to('#screenFrame', { opacity:1, duration:1.6, ease:'power3.out' }, 3.3);
+    tl.from('.ring-item', {
+      opacity:0, scale:0.4, z:-300,
+      duration:1.6, ease:'power3.out', stagger:0.05
+    }, 3.3);
+
+    // 4. Headline letters drop in
+    tl.to('#prelabel', { opacity:1, duration:0.9, ease:'power3.out' }, 4.0);
+    tl.to('.letter',   { y:'0%', opacity:1, duration:1.1, ease:'power4.out', stagger:0.035 }, 4.15);
+
+    // 5. Hints + nav
+    tl.to('#nav',       { opacity:1, duration:1.2, ease:'power3.out' }, 4.4);
+    tl.to('#dragHint',  { opacity:1, duration:1.2, ease:'power3.out' }, 5.1);
+    tl.to('#scrollCue', { opacity:1, duration:1.2, ease:'power3.out' }, 5.4);
+  });
+
+  // ═════ Scroll choreography ═════
+  // As you scroll: ring tilts back & recedes, headline lifts away
+  gsap.to('.ring-tilt', {
+    rotateX:'+=30', scale:0.7, y:-80,
+    ease:'none',
+    scrollTrigger:{ trigger:'#hero', start:'top top', end:'bottom top', scrub:true }
+  });
+  gsap.to('.hero-text', {
+    y:-120, opacity:0,
+    ease:'none',
+    scrollTrigger:{ trigger:'#hero', start:'top top', end:'bottom top', scrub:true }
+  });
+  gsap.to('.audience', {
+    y:60, opacity:0.4,
+    ease:'none',
+    scrollTrigger:{ trigger:'#hero', start:'top top', end:'bottom top', scrub:true }
+  });
+  gsap.to(['#dragHint', '#scrollCue'], {
+    opacity:0, ease:'none',
+    scrollTrigger:{ trigger:'#hero', start:'top top', end:'20% top', scrub:true }
+  });
+
+  // ═════ Story scenes — fullscreen cinematic transitions ═════
+  const scenes   = gsap.utils.toArray('.story-scene');
+  const arts     = gsap.utils.toArray('.scene-art');
+  const steps    = [...document.querySelectorAll('.story-progress span')];
+  const lineFill = document.getElementById('storyLineFill');
+  const bgTint   = document.getElementById('storyBgTint');
+  const SCENE_DURATION = 110;   // % of viewport per scene
+
+  // Background tints per scene (radial gradients shift)
+  const BG_TINTS = [
+    'radial-gradient(ellipse at 25% 50%, rgba(212,168,74,0.14), transparent 60%)',
+    'radial-gradient(ellipse at 50% 50%, rgba(122,24,24,0.18), transparent 60%)',
+    'radial-gradient(ellipse at 75% 50%, rgba(212,168,74,0.18), transparent 60%)'
+  ];
+
+  let currentScene = -1;
+  function setActiveScene(i) {
+    if (i === currentScene) return;
+    currentScene = i;
+    scenes.forEach((s, idx) => {
+      const active = idx === i;
+      s.classList.toggle('is-active', active);
+      arts[idx]?.classList.toggle('in', active);
+      const headline = s.querySelector('.scene-headline');
+      const body     = s.querySelector('.scene-body');
+      if (active && headline && body) {
+        headline.classList.remove('in'); body.classList.remove('in');
+        void headline.offsetWidth;
+        headline.classList.add('in');
+        body.classList.add('in');
+      }
+    });
+    steps.forEach((s, idx) => s.classList.toggle('active', idx === i));
+    if (bgTint) bgTint.style.background = BG_TINTS[i] || BG_TINTS[0];
+  }
+
+  // Pin + scrub through scenes
+  // (Opacity controlled by .is-active class — DO NOT use gsap.set here, it
+  //  writes inline styles that override the class toggle and stick scenes shut.)
+  ScrollTrigger.create({
+    trigger:'#storySection',
+    start:'top top',
+    end:`+=${scenes.length * SCENE_DURATION}%`,
+    pin:'.story-pin',
+    scrub:false,
+    invalidateOnRefresh:true,
+    onUpdate: self => {
+      const idx = Math.min(scenes.length-1, Math.floor(self.progress * scenes.length * 0.999));
+      setActiveScene(idx);
+      if (lineFill) lineFill.style.width = (self.progress * 100) + '%';
+    }
+  });
+
+  setActiveScene(0);
+
+  gsap.from('.cta-section .cta-inner', {
+    y:60, opacity:0, duration:1.2, ease:'power3.out',
+    scrollTrigger:{ trigger:'.cta-section', start:'top 70%' }
+  });
+
+  window.addEventListener('resize', () => ScrollTrigger.refresh());
+  </script>
 </body>
 </html>
