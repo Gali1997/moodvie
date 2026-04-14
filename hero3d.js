@@ -7,10 +7,10 @@
 
   const scene  = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
-  camera.position.z = 3.2;
+  camera.position.z = window.innerWidth < 768 ? 4.5 : 3.2;
 
   // ─── Particles ───────────────────────────────────────────────────────────────
-  const COUNT  = 4000;
+  const COUNT  = window.innerWidth < 768 ? 2000 : 4000;
   const geo    = new THREE.BufferGeometry();
   const pos    = new Float32Array(COUNT * 3);
   const colors = new Float32Array(COUNT * 3);
@@ -53,7 +53,7 @@
       colors[i * 3 + 2] = 0.1;
     }
 
-    sizes[i] = Math.random() * 3.5 + 1.2;
+    sizes[i] = window.innerWidth < 768 ? Math.random() * 2 + 0.8 : Math.random() * 3.5 + 1.2;
   }
 
   geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
@@ -141,6 +141,7 @@
   // ─── Resize ──────────────────────────────────────────────────────────────────
   window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
+    camera.position.z = window.innerWidth < 768 ? 4.5 : 3.2;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
   });
