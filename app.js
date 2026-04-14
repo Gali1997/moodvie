@@ -192,104 +192,40 @@ moodInput.addEventListener('keydown', e => {
 });
 
 
-// ─── Groq AI (Llama 3.3 70B) ─────────────────────────────────────────────────
-// Free, fast, works globally. Sign up at https://console.groq.com/keys
+// ─── API Base URL ─────────────────────────────────────────────────────────────
+// Uses Cloudflare Worker proxy so API keys stay server-side
+const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  ? 'https://moodvie-api.galinagrkovikj.workers.dev'  // always use worker, even in dev
+  : 'https://moodvie-api.galinagrkovikj.workers.dev';
+
+
+// ─── AI Recommendation (via worker proxy) ────────────────────────────────────
 async function askAI(mood) {
-  const prompt = `You are a deeply empathetic film curator. Someone describes their emotional state and you recommend the single most resonant film for that exact moment.
-
-They are feeling: "${mood}"
-
-Respond ONLY with valid JSON — no explanation, no markdown, no code blocks:
-{
-  "movie_title": "exact title",
-  "year": "release year as string",
-  "reason": "2-3 sentences. Be personal and specific about why this film fits their exact emotional state right now. Speak directly to them."
-}`;
-
-  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+  const res = await fetch(`${API_BASE}/api/recommend`, {
     method: 'POST',
-    headers: {
-      'Content-Type':  'application/json',
-      'Authorization': `Bearer ${CONFIG.GROQ_API_KEY}`
-    },
-    body: JSON.stringify({
-      model: 'llama-3.3-70b-versatile',
-      messages: [{ role: 'user', content: prompt }],
-      max_tokens: 512,
-      temperature: 0.8,
-      response_format: { type: 'json_object' }
-    })
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ mood })
   });
 
   if (!res.ok) {
-    const errBody = await res.text();
-    throw new Error(`Groq ${res.status}: ${errBody.slice(0, 200)}`);
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || err.error || `API error ${res.status}`);
   }
 
-  const data = await res.json();
-  const text = data.choices?.[0]?.message?.content;
-  if (!text) throw new Error('Empty AI response');
-
-  const match = text.match(/\{[\s\S]*\}/);
-  if (!match) throw new Error('Bad AI response: ' + text.slice(0, 100));
-  return JSON.parse(match[0]);
+  return await res.json();
 }
 
 
-// ─── TMDB ─────────────────────────────────────────────────────────────────────
+// ─── TMDB (via worker proxy) ─────────────────────────────────────────────────
 async function fetchTMDB(title, year) {
-  const searchUrl = `https://api.themoviedb.org/3/search/movie?query=${encodeURIComponent(title)}&year=${year}&api_key=${CONFIG.TMDB_API_KEY}`;
-  const searchRes = await fetch(searchUrl);
-  const searchData = await searchRes.json();
-  const movie = searchData.results[0];
-  if (!movie) return { poster:null, trailer:null, providers:[], region:null, tagline:null, runtime:null, genres:[], rating:null, director:null, cast:[] };
+  const params = new URLSearchParams({ title, year: year || '' });
+  const res = await fetch(`${API_BASE}/api/movie?${params}`);
 
-  const id = movie.id;
-
-  const [detailsRes, creditsRes, videosRes, providersRes] = await Promise.all([
-    fetch(`https://api.themoviedb.org/3/movie/${id}?api_key=${CONFIG.TMDB_API_KEY}`),
-    fetch(`https://api.themoviedb.org/3/movie/${id}/credits?api_key=${CONFIG.TMDB_API_KEY}`),
-    fetch(`https://api.themoviedb.org/3/movie/${id}/videos?api_key=${CONFIG.TMDB_API_KEY}`),
-    fetch(`https://api.themoviedb.org/3/movie/${id}/watch/providers?api_key=${CONFIG.TMDB_API_KEY}`)
-  ]);
-
-  const details      = await detailsRes.json();
-  const credits      = await creditsRes.json();
-  const videosData   = await videosRes.json();
-  const providersData = await providersRes.json();
-
-  // Trailer — prefer official YouTube trailer
-  const trailer = videosData.results?.find(v => v.site === 'YouTube' && v.type === 'Trailer')
-              || videosData.results?.find(v => v.site === 'YouTube');
-
-  // Streaming providers — MK → US → GB fallback
-  let regionCode = null;
-  let providers  = [];
-  for (const code of ['MK', 'US', 'GB']) {
-    const r = providersData.results?.[code];
-    if (r && ((r.flatrate?.length) || (r.free?.length))) {
-      regionCode = code;
-      providers  = (r.flatrate || []).concat(r.free || []);
-      break;
-    }
+  if (!res.ok) {
+    return { poster:null, trailer:null, providers:[], region:null, tagline:null, runtime:null, genres:[], rating:null, director:null, cast:[] };
   }
 
-  // Director + top 3 cast
-  const director = credits.crew?.find(c => c.job === 'Director')?.name || null;
-  const cast     = (credits.cast || []).slice(0, 3).map(c => c.name);
-
-  return {
-    poster:  movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : null,
-    trailer: trailer ? `https://www.youtube.com/watch?v=${trailer.key}` : null,
-    providers: providers.slice(0, 6),
-    region:    regionCode,
-    tagline:   details.tagline || null,
-    runtime:   details.runtime || null,
-    genres:    (details.genres || []).map(g => g.name),
-    rating:    details.vote_average || null,
-    director,
-    cast
-  };
+  return await res.json();
 }
 
 
