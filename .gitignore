@@ -4,6 +4,9 @@ config.js
 # Claude Code local settings
 .claude/
 
+# Wrangler cache
+worker/.wrangler/
+
 # Large media
 *.mp4
 
