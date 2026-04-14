@@ -367,6 +367,17 @@ function renderResult(movie, tmdb, userMood) {
     poster: tmdb.poster
   };
 
+  // Save to mood history (for profile page)
+  saveMoodHistory({
+    title:  movie.movie_title,
+    year:   movie.year,
+    poster: tmdb.poster,
+    mood:   userMood,
+    reason: movie.reason,
+    genres: tmdb.genres || [],
+    date:   new Date().toISOString()
+  });
+
   show('result');
   initTilt();
 
@@ -402,6 +413,18 @@ function initTilt() {
 }
 
 
+
+
+// ─── Mood History (for profile page) ─────────────────────────────────────────
+function saveMoodHistory(entry) {
+  const user = auth.currentUser;
+  if (!user) return; // only save for logged-in users
+  const key = `moodvie_history_${user.uid}`;
+  const history = JSON.parse(localStorage.getItem(key) || '[]');
+  history.unshift(entry); // newest first
+  if (history.length > 50) history.length = 50; // cap at 50
+  localStorage.setItem(key, JSON.stringify(history));
+}
 
 
 // ─── Controls ─────────────────────────────────────────────────────────────────
