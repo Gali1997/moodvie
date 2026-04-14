@@ -131,43 +131,10 @@
           <ol class="ritual-list" id="ritual-list"></ol>
         </div>
 
-        <!-- Tonight's ticket · 3D interactive golden stub -->
-        <div class="ticket-scene" id="ticket-scene" style="display:none">
-          <div class="ticket-stub" id="ticket-stub">
-            <!-- Perforation holes -->
-            <span class="perf-hole"></span>
-            <span class="perf-hole"></span>
-            <span class="perf-hole"></span>
-            <div class="ticket-main">
-              <div class="ticket-head">
-                <span class="ticket-brand">Moodvie</span>
-                <span class="ticket-admit">Admit One</span>
-              </div>
-              <p class="ticket-feature">Tonight's feature</p>
-              <h4 class="ticket-title" id="ticket-title"></h4>
-              <p class="ticket-year" id="ticket-year"></p>
-              <p class="ticket-mood" id="ticket-mood"></p>
-              <div class="ticket-meta">
-                <div class="tm-cell">
-                  <span class="tm-label">Date</span>
-                  <span class="tm-value" id="ticket-date"></span>
-                </div>
-                <div class="tm-cell">
-                  <span class="tm-label">Seat</span>
-                  <span class="tm-value" id="ticket-seat"></span>
-                </div>
-                <div class="tm-cell">
-                  <span class="tm-label">No.</span>
-                  <span class="tm-value" id="ticket-no"></span>
-                </div>
-              </div>
-            </div>
-            <div class="ticket-stub-end">
-              <span class="stub-label">Admit</span>
-              <span class="stub-num">01</span>
-              <span class="stub-brand">Moodvie</span>
-            </div>
-          </div>
+        <!-- 3D Cinema Ticket -->
+        <div class="ticket-3d-wrap" id="ticket3dWrap" style="display:none">
+          <p class="ticket-3d-label">Your ticket</p>
+          <canvas id="ticket3dCanvas"></canvas>
         </div>
 
         <div class="result-actions">
@@ -201,7 +168,115 @@
   <script src="firebase-config.js"></script>
   <script src="config.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/DRACOLoader.js"></script>
   <script src="hero3d.js"></script>
+  <script>
+  // ─── 3D Cinema Ticket (result page) ───────────────────────────────────────
+  window.showTicket3D = function() {
+    const wrap   = document.getElementById('ticket3dWrap');
+    const canvas = document.getElementById('ticket3dCanvas');
+    if (!wrap || !canvas) return;
+
+    // Don't re-init if already loaded
+    if (canvas.dataset.loaded) { wrap.style.display = 'block'; return; }
+    canvas.dataset.loaded = '1';
+    wrap.style.display = 'block';
+
+    const cw = Math.min(400, wrap.clientWidth);
+    const ch = 280;
+
+    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(cw, ch);
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.4;
+
+    const scene  = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(32, cw / ch, 0.1, 100);
+    camera.position.set(0, 0.5, 4);
+    camera.lookAt(0, 0, 0);
+
+    // Golden key light
+    const key = new THREE.DirectionalLight(0xd4a84a, 4);
+    key.position.set(3, 4, 4);
+    scene.add(key);
+
+    // Warm rim from behind
+    const rim = new THREE.DirectionalLight(0xb4761e, 2.5);
+    rim.position.set(-3, 2, -2);
+    scene.add(rim);
+
+    // Soft fill
+    const fill = new THREE.DirectionalLight(0xf1e3bf, 1);
+    fill.position.set(0, -1, 4);
+    scene.add(fill);
+
+    scene.add(new THREE.AmbientLight(0x1a0f08, 1.2));
+
+    let ticket = null;
+    let mX = 0, mY = 0, tX = 0, tY = 0;
+    let isDragging = false, prevDragX = 0, dragRotY = 0;
+
+    const dracoLoader = new THREE.DRACOLoader();
+    dracoLoader.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/draco/gltf/');
+    const loader = new THREE.GLTFLoader();
+    loader.setDRACOLoader(dracoLoader);
+    loader.load('cinema-ticket.glb', function(gltf) {
+      ticket = gltf.scene;
+
+      // Auto-fit: compute bounding box, scale + center
+      const box = new THREE.Box3().setFromObject(ticket);
+      const size = new THREE.Vector3();
+      const center = new THREE.Vector3();
+      box.getSize(size);
+      box.getCenter(center);
+      const maxDim = Math.max(size.x, size.y, size.z);
+      const scale = 2.2 / maxDim;
+      ticket.scale.setScalar(scale);
+      ticket.position.sub(center.multiplyScalar(scale));
+
+      scene.add(ticket);
+    });
+
+    // Mouse hover tilt
+    canvas.addEventListener('mousemove', (e) => {
+      const r = canvas.getBoundingClientRect();
+      tX = ((e.clientX - r.left) / r.width - 0.5) * 2;
+      tY = ((e.clientY - r.top) / r.height - 0.5) * 2;
+
+      if (isDragging) {
+        const dx = e.clientX - prevDragX;
+        dragRotY += dx * 0.008;
+        prevDragX = e.clientX;
+      }
+    });
+    canvas.addEventListener('mouseleave', () => { tX = 0; tY = 0; isDragging = false; });
+    canvas.addEventListener('mousedown', (e) => { isDragging = true; prevDragX = e.clientX; });
+    canvas.addEventListener('mouseup', () => { isDragging = false; });
+
+    let time = 0;
+    function animate() {
+      requestAnimationFrame(animate);
+      time += 0.006;
+
+      mX += (tX - mX) * 0.06;
+      mY += (tY - mY) * 0.06;
+
+      if (ticket) {
+        if (!isDragging) {
+          ticket.rotation.y = dragRotY + Math.sin(time * 0.3) * 0.08 + mX * 0.25;
+        } else {
+          ticket.rotation.y = dragRotY;
+        }
+        ticket.rotation.x = Math.sin(time * 0.2) * 0.03 + mY * -0.15;
+        ticket.position.y = Math.sin(time * 0.4) * 0.05;
+      }
+      renderer.render(scene, camera);
+    }
+    animate();
+  };
+  </script>
   <script src="app.js"></script>
 </body>
 </html>

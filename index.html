@@ -597,6 +597,34 @@
       .scene-art { display:none; }
     }
 
+    /* ═══════════ Popcorn Interlude ═══════════ */
+    .popcorn-interlude {
+      height:80vh;
+      position:relative;
+      display:flex; align-items:center; justify-content:center;
+      background:var(--deep);
+      overflow:hidden;
+    }
+    .popcorn-interlude canvas {
+      position:absolute; inset:0;
+      width:100%; height:100%;
+      z-index:1;
+    }
+    .popcorn-text {
+      position:absolute;
+      bottom:6vh;
+      left:50%;
+      transform:translateX(-50%);
+      z-index:2;
+      font-family:var(--serif);
+      font-size:clamp(0.6rem, 1.2vw, 0.75rem);
+      font-style:italic;
+      letter-spacing:0.4em;
+      text-transform:uppercase;
+      color:rgba(212,168,74,0.5);
+      pointer-events:none;
+    }
+
     /* ═══════════ CTA ═══════════ */
     .cta-section {
       min-height:100vh;
@@ -669,8 +697,16 @@
       content:''; width:24px; height:1px; background:rgba(150,140,120,0.4);
     }
 
+    /* Hide custom cursor on touch devices */
+    @media (hover:none), (pointer:coarse) {
+      html, body { cursor:auto; }
+      .cursor, .cursor-dot { display:none !important; }
+      a, button, .enter-btn, .nav-link { cursor:auto; }
+    }
+
     @media (max-width:780px) {
       .nav { padding:1.4rem 1.5rem; }
+      .nav-links { gap:1.2rem; }
       .marquee { font-size:1rem; }
       .programme { display:none; }
       .ring { width:170px; height:255px; }
@@ -679,6 +715,13 @@
       .story-num { font-size:3.6rem; }
       .spotlight { flex-direction:column; gap:2rem; padding:6vw 8vw; }
       .spotlight-poster { width:55vw; }
+      .hero { min-height:600px; }
+      .hero-text { padding-bottom:4vh; }
+      .cta-headline { font-size:clamp(2rem, 8vw, 4rem); }
+      .cta-sub { font-size:0.8rem; padding:0 1rem; }
+      .popcorn-interlude { height:50vh; }
+      .popcorn-text { bottom:4vh; font-size:0.55rem; }
+      .enter-btn { padding:1rem 2.5rem; font-size:0.55rem; }
     }
   </style>
 </head>
@@ -895,6 +938,12 @@
     </div>
   </section>
 
+  <!-- ═════ Popcorn interlude ═════ -->
+  <section class="popcorn-interlude" id="popcornInterlude">
+    <canvas id="popcornCanvas"></canvas>
+    <p class="popcorn-text">Grab your popcorn</p>
+  </section>
+
   <!-- ═════ CTA ═════ -->
   <section class="cta-section">
     <div class="cta-inner">
@@ -908,7 +957,7 @@
         </svg>
       </a>
     </div>
-    <div class="footer">Moodvie · made by Galina</div>
+    <div class="footer">Moodvie · made by Galina · Popcorn by Andrew McHugh CC-BY via Poly Pizza</div>
   </section>
 
   <script src="config.js"></script>
@@ -1231,6 +1280,112 @@
   });
 
   window.addEventListener('resize', () => ScrollTrigger.refresh());
+  </script>
+
+  <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.163.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.163.0/examples/jsm/"}}</script>
+  <script type="module">
+  import * as THREE from 'three';
+  import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+  import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+
+  const canvas = document.getElementById('popcornCanvas');
+  const section = document.getElementById('popcornInterlude');
+  if (canvas && section) {
+    const w = section.clientWidth;
+    const h = section.clientHeight;
+
+    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(w, h);
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.5;
+
+    const scene = new THREE.Scene();
+    const cam = new THREE.PerspectiveCamera(28, w / h, 0.1, 100);
+    cam.position.set(0, 1, 12);
+    cam.lookAt(0, 0, 0);
+
+    // Strong golden spotlight from above — like a theater stage light
+    const spot = new THREE.SpotLight(0xd4a84a, 8, 30, Math.PI / 4, 0.3);
+    spot.position.set(0, 10, 4);
+    scene.add(spot);
+
+    // Second spotlight from front-right for depth
+    const spot2 = new THREE.SpotLight(0xf1e3bf, 3, 20, Math.PI / 5, 0.5);
+    spot2.position.set(4, 4, 6);
+    scene.add(spot2);
+
+    // Warm rim from behind
+    const rim = new THREE.DirectionalLight(0xb4761e, 3);
+    rim.position.set(-3, 3, -3);
+    scene.add(rim);
+
+    // Fill from below for drama
+    const fill = new THREE.DirectionalLight(0xd4a84a, 1);
+    fill.position.set(0, -2, 5);
+    scene.add(fill);
+
+    scene.add(new THREE.AmbientLight(0x1a0f08, 1.0));
+
+    let popcorn = null;
+    let mouseX = 0, mouseY = 0;
+    let targetX = 0, targetY = 0;
+
+    const dracoLoader = new DRACOLoader();
+    dracoLoader.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.163.0/examples/jsm/libs/draco/gltf/');
+    const loader = new GLTFLoader();
+    loader.setDRACOLoader(dracoLoader);
+    loader.load('popcorn.glb', (gltf) => {
+      popcorn = gltf.scene;
+
+      // Auto-fit: measure model, scale to fit, center it
+      const box = new THREE.Box3().setFromObject(popcorn);
+      const size = new THREE.Vector3();
+      const center = new THREE.Vector3();
+      box.getSize(size);
+      box.getCenter(center);
+      const maxDim = Math.max(size.x, size.y, size.z);
+      const scale = 3 / maxDim;
+      popcorn.scale.setScalar(scale);
+      popcorn.position.set(
+        -center.x * scale,
+        -center.y * scale,
+        -center.z * scale
+      );
+
+      scene.add(popcorn);
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      targetX = (e.clientX / window.innerWidth - 0.5) * 2;
+      targetY = (e.clientY / window.innerHeight - 0.5) * 2;
+    });
+
+    let time = 0;
+    function animate() {
+      requestAnimationFrame(animate);
+      time += 0.006;
+
+      // Smooth lerp for mouse — feels buttery
+      mouseX += (targetX - mouseX) * 0.05;
+      mouseY += (targetY - mouseY) * 0.05;
+
+      if (popcorn) {
+        popcorn.rotation.y = Math.sin(time * 0.25) * 0.2 + mouseX * 0.5;
+        popcorn.rotation.x = mouseY * -0.25;
+        popcorn.rotation.z = mouseX * -0.1;
+      }
+      renderer.render(scene, cam);
+    }
+    animate();
+
+    window.addEventListener('resize', () => {
+      const nw = section.clientWidth, nh = section.clientHeight;
+      renderer.setSize(nw, nh);
+      cam.aspect = nw / nh;
+      cam.updateProjectionMatrix();
+    });
+  }
   </script>
 </body>
 </html>

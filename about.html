@@ -236,12 +236,20 @@
       to { opacity:1; transform:translate(0,0); }
     }
 
+    @media (hover:none), (pointer:coarse) {
+      html, body { cursor:auto; }
+      .cursor, .cursor-dot { display:none !important; }
+      a, button { cursor:auto; }
+    }
     @media (max-width:780px) {
       .nav { padding:1.4rem 1.5rem; }
-      .nav-links { gap:1.4rem; }
+      .nav-links { gap:1.2rem; }
       .marquee { font-size:1rem; }
       .note-section { padding:14vh 5vw 10vh; }
-      .note-body p { font-size:1.05rem; }
+      .note-headline { font-size:clamp(2rem, 6vw, 3rem); }
+      .note-body p { font-size:1rem; line-height:1.7; }
+      .note-coffee { font-size:0.9rem; }
+      .enter-btn { padding:1rem 2.5rem; font-size:0.55rem; }
     }
   </style>
 </head>

@@ -387,40 +387,8 @@ function renderResult(movie, tmdb, userMood) {
     providersWrap.style.display = 'none';
   }
 
-  // ── Tonight's Ticket (souvenir stub) ──
-  const titleHash = [...movie.movie_title].reduce((a, c) => a + c.charCodeAt(0), 0);
-
-  document.getElementById('ticket-title').textContent = movie.movie_title;
-  document.getElementById('ticket-year').textContent  = movie.year || '';
-
-  const moodText = (userMood || '').trim();
-  const moodTrim = moodText.length > 110 ? moodText.slice(0, 108).trimEnd() + '\u2026' : moodText;
-  document.getElementById('ticket-mood').textContent = moodTrim;
-
-  const now = new Date();
-  const dateStr = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  const timeStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-  document.getElementById('ticket-date').textContent = `${dateStr} \u00B7 ${timeStr}`;
-
-  const row  = String.fromCharCode(65 + (titleHash % 12));    // A-L
-  const seat = (titleHash % 24) + 1;                           // 1-24
-  document.getElementById('ticket-seat').textContent = `${row}-${seat}`;
-  document.getElementById('ticket-no').textContent   = `${String((titleHash * 7) % 9000 + 1000)}-MV`;
-
-  // Show the ticket scene, trigger 3D unfold
-  const ticketScene = document.getElementById('ticket-scene');
-  const ticketStub  = document.getElementById('ticket-stub');
-  ticketScene.style.display = 'block';
-  ticketStub.classList.remove('is-open', 'tilt-ready');
-  void ticketStub.offsetWidth;
-  ticketStub.classList.add('is-open');
-  // After unfold animation completes, enable interactive tilt
-  setTimeout(() => {
-    ticketStub.classList.add('tilt-ready');
-    initTicketTilt(ticketScene, ticketStub);
-  }, 2000);
-
   // ── Before the film · ritual suggestions ──
+  const titleHash = [...movie.movie_title].reduce((a, c) => a + c.charCodeAt(0), 0);
   const RITUALS = [
     'Pour something warm',
     'Dim every light in the room',
@@ -466,6 +434,9 @@ function renderResult(movie, tmdb, userMood) {
   show('result');
   initTilt();
 
+  // Load 3D ticket
+  if (window.showTicket3D) window.showTicket3D();
+
   setTimeout(() => { tipOverlay.style.display = 'flex'; }, 4000);
 }
 
@@ -495,32 +466,6 @@ function initTilt() {
 }
 
 
-// ─── Ticket 3D interactive tilt (hologram effect) ────────────────────────────
-let ticketTiltCleanup = null;
-function initTicketTilt(scene, stub) {
-  // Remove previous listeners if retriggered
-  if (ticketTiltCleanup) ticketTiltCleanup();
-
-  function onMove(e) {
-    const r = scene.getBoundingClientRect();
-    const x = (e.clientX - r.left) / r.width  - 0.5;  // -0.5 to 0.5
-    const y = (e.clientY - r.top)  / r.height - 0.5;
-    stub.style.transform =
-      `rotateY(${x * 14}deg) rotateX(${-y * 10}deg) scale(1.02) rotate(-0.3deg)`;
-  }
-  function onLeave() {
-    stub.style.transform = 'rotateX(0) rotateY(0) scale(1) rotate(-0.4deg)';
-  }
-
-  scene.addEventListener('mousemove',  onMove);
-  scene.addEventListener('mouseleave', onLeave);
-
-  ticketTiltCleanup = () => {
-    scene.removeEventListener('mousemove',  onMove);
-    scene.removeEventListener('mouseleave', onLeave);
-    ticketTiltCleanup = null;
-  };
-}
 
 
 // ─── Controls ─────────────────────────────────────────────────────────────────

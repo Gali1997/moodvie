@@ -7,6 +7,10 @@ config.js
 # Large media
 *.mp4
 
+# Original unoptimized 3D models
+*-original.glb
+video-camera.glb
+
 # OS files
 .DS_Store
 Thumbs.db
