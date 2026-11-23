@@ -150,7 +150,7 @@ These weren't written down at the start. They revealed themselves through the it
 - **GSAP + ScrollTrigger** — scroll-driven animations on the landing page
 - **Lenis** — smooth scroll library
 - **TMDB API** — movie data, posters, trailers, streaming providers
-- **Groq API** (Llama 3.3 70B) — AI mood analysis and film matching
+- **Groq API** (GPT-OSS 120B, originally Llama 3.3 70B until Groq retired it) — AI mood analysis and film matching
 - **Cloudflare Pages** — hosting
 - **GitHub** — version control
 
