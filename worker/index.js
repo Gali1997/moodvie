@@ -49,9 +49,10 @@ Respond ONLY with valid JSON — no explanation, no markdown, no code blocks:
             'Authorization': `Bearer ${env.GROQ_API_KEY}`
           },
           body: JSON.stringify({
-            model: 'llama-3.3-70b-versatile',
+            model: 'openai/gpt-oss-120b',
             messages: [{ role: 'user', content: prompt }],
-            max_tokens: 512,
+            max_tokens: 2048,
+            reasoning_effort: 'low',
             temperature: 0.8,
             response_format: { type: 'json_object' }
           })
